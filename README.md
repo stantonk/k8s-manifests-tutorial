@@ -1,3 +1,9 @@
+A fully annotated Kubernetes manifest to help people understand what all the
+fields are in each object and how they fit together.
+
+
+
+
 ```
 curl http://$(minikube ip):30228
 ```
