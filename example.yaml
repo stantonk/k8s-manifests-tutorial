@@ -52,6 +52,8 @@ spec:
     # and other configurations.
     spec:
 
+      # time to give the container to end gracefully before forcibly halting
+      terminationGracePeriodSeconds: 60
       containers:
       - name: rest-api
         image: rest-api:latest
@@ -67,6 +69,12 @@ spec:
 #        args:
 #          - "rest.py"
 
+        # A startup probe verifies whether the application within a container is started. This can be used to adopt
+        # liveness checks on slow starting containers, avoiding them getting killed by the kubelet before they are up
+        # and running.
+        # If such a probe is configured, it disables liveness and readiness checks until it succeeds.
+        # This type of probe is only executed at startup, unlike liveness and readiness probes, which are run
+        # periodically.
         startupProbe:
           httpGet:
             port: svcport
@@ -74,8 +82,9 @@ spec:
           initialDelaySeconds: 1
           failureThreshold: 3
           timeoutSeconds: 3
-          periodSeconds: 5
           successThreshold: 1
+          # default is 10 seconds
+          periodSeconds: 5
         # Liveness probes determine when to restart a container. For example, liveness probes could catch a deadlock
         # when an application is running but unable to make progress.
         # If a container fails its liveness probe repeatedly, the kubelet restarts the container.
@@ -86,7 +95,7 @@ spec:
             port: svcport
             path: /health
           successThreshold: 1
-          periodSeconds: 10
+          periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
           initialDelaySeconds: 60
@@ -100,7 +109,7 @@ spec:
           httpGet:
             port: svcport
             path: /health
-          initialDelaySeconds: 2
+          initialDelaySeconds: 1
           failureThreshold: 3
           successThreshold: 1
           timeoutSeconds: 3
@@ -121,9 +130,6 @@ apiVersion: v1
 kind: ConfigMap
 data:
   config.yaml: |
-    some: "config"
-    more: config
-    enabled: true
-    moreconfig: 5
+    name: "Homer"
 metadata:
   name: config
