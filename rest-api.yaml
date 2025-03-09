@@ -122,6 +122,7 @@ spec:
         # must match spec.template.spec.containers[].volumeMounts[].name
         - name: config-volume
           configMap:
+            # must match ConfigMap.metadata.name
             name: config
 
 

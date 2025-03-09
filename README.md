@@ -11,9 +11,9 @@ alias k=kubectl
 minikube delete
 minikube start
 eval $(minikube docker-env)
-docker build -t rest-api .
+docker build -t rest-api:latest .
 eval $(minikube docker-env -u)
-k apply -f example.yaml
+k apply -f rest-api.yaml
 ```
 
 ### Connecting to the service
@@ -61,48 +61,34 @@ normally, like so:
 ```
 curl http://$(minikube ip):32707
 
-Hello, World!
+{
+  "greeting": "Hello, Homer"
+}
+```
+
+### Build & Deploy
+
+Because of how images get cached in Minikube, we need to either remove the image for `rest-api:latest` or we
+need to tag each image with a different version and update the `rest-api.yaml` mainfest accordingly.
+
+It's easier to just remove the `rest-api:latest` image and rebuild it and redeploy:
+
+```
+eval $(minikube docker-env)
+docker rmi rest-api:latest
+docker build -t rest-api:latest .
+eval $(minikube docker-env -u)
+k apply -f rest-api.yaml
 ```
 
 ### ConfigMap
+
+Notice that the greeting says "Hello, Homer", which matches the ConfigMap's `name` field in the `config.yaml` file.
+It is mounted into the rest-api's container at `/etc/config` (see `rest-api.yaml` k8s manifest).
+
 ```
 k exec -it $(k get pods -o json | jq -r '.items[0].metadata.name') -- cat /etc/config/config.yaml
-some: "config"
-more: "config
-enabled: true
+name: "Homer"
 ```
 
-You have to redeploy the pods for a configmap change to be seen
-```
-➜ k exec -it $(k get pods -o json | jq -r '.items[0].metadata.name') -- cat /etc/config/config.yaml
-some: "config"
-more: "config
-enabled: true
-
-k8s-service-alb at ☸️ minikube
-➜ k get pods
-NAME                                READY   STATUS    RESTARTS        AGE
-nginx-deployment-69d9f88474-9lqqf   1/1     Running   0               47s
-nginx-deployment-69d9f88474-d89ww   1/1     Running   0               46s
-nginx-deployment-69d9f88474-snxmq   1/1     Running   0               45s
-shell                               1/1     Running   1 (6m42s ago)   26h
-
-k8s-service-alb at ☸️ minikube
-➜ k delete pod nginx-deployment-69d9f88474-9lqqf
-pod "nginx-deployment-69d9f88474-9lqqf" deleted
-
-k8s-service-alb at ☸️ minikube
-➜ k delete pod nginx-deployment-69d9f88474-d89ww
-pod "nginx-deployment-69d9f88474-d89ww" deleted
-
-k8s-service-alb at ☸️ minikube
-➜ k delete pod nginx-deployment-69d9f88474-snxmq
-pod "nginx-deployment-69d9f88474-snxmq" deleted
-
-k8s-service-alb at ☸️ minikube
-➜ k exec -it $(k get pods -o json | jq -r '.items[0].metadata.name') -- cat /etc/config/config.yaml
-some: "config"
-more: "config
-enabled: true
-moreconfig: 5
-```
+**Important Note: You have to redeploy the pods for a configmap change to be seen**
