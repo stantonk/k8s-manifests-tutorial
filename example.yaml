@@ -59,6 +59,7 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
+          name: svcport
         volumeMounts:
           - mountPath: /etc/config
             name: config-volume
@@ -66,10 +67,44 @@ spec:
 #        args:
 #          - "rest.py"
 
-        #TODO probes
-#        startupProbe:
-#        livenessProbe:
-#        readinessProbe:
+        startupProbe:
+          httpGet:
+            port: svcport
+            path: /health
+          initialDelaySeconds: 1
+          failureThreshold: 3
+          timeoutSeconds: 3
+          periodSeconds: 5
+          successThreshold: 1
+        # Liveness probes determine when to restart a container. For example, liveness probes could catch a deadlock
+        # when an application is running but unable to make progress.
+        # If a container fails its liveness probe repeatedly, the kubelet restarts the container.
+        # Liveness probes do not wait for readiness probes to succeed. If you want to wait before executing a liveness
+        # probe, you can either define initialDelaySeconds or use a startup probe.
+        livenessProbe:
+          httpGet:
+            port: svcport
+            path: /health
+          successThreshold: 1
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+          initialDelaySeconds: 60
+
+        # Readiness probes determine when a container is ready to start accepting traffic. This is useful when waiting
+        # for an application to perform time-consuming initial tasks, such as establishing network connections,
+        # loading files, and warming caches.
+        # If the readiness probe returns a failed state, Kubernetes removes the pod from all matching service endpoints.
+        # Readiness probes run on the container during its whole lifecycle.
+        readinessProbe:
+          httpGet:
+            port: svcport
+            path: /health
+          initialDelaySeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+          timeoutSeconds: 3
+          periodSeconds: 5
 
       # volumes declared available to the
       # pod(s)
